@@ -45,6 +45,10 @@ ngx_calloc(size_t size, ngx_log_t *log)
     return p;
 }
 
+/*
+ * alignment 代表内存对齐的字节数。这个值必须是 2 的幂次方。
+ * size 代表要分配的内存块的大小，以字节为单位。
+*/
 
 #if (NGX_HAVE_POSIX_MEMALIGN)
 

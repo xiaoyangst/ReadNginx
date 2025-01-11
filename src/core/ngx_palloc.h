@@ -19,7 +19,7 @@
  */
 #define NGX_MAX_ALLOC_FROM_POOL  (ngx_pagesize - 1)
 
-#define NGX_DEFAULT_POOL_SIZE    (16 * 1024)
+#define NGX_DEFAULT_POOL_SIZE    (16 * 1024)  // 默认内存池大小 16MB
 
 #define NGX_POOL_ALIGNMENT       16
 #define NGX_MIN_POOL_SIZE                                                     \
@@ -56,7 +56,7 @@ typedef struct {
 
 struct ngx_pool_s {
     ngx_pool_data_t       d;
-    size_t                max;
+    size_t                max;  // 内存池中一个块的大小
     ngx_pool_t           *current;
     ngx_chain_t          *chain;
     ngx_pool_large_t     *large;
