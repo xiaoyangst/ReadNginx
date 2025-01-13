@@ -14,10 +14,10 @@
 
 
 typedef struct {
-    void        *elts;
-    ngx_uint_t   nelts;
-    size_t       size;
-    ngx_uint_t   nalloc;
+    void        *elts;  // 指向数组第一个元素指针
+    ngx_uint_t   nelts; // 数组中已有元素个数，添加元素就在该下标添加即可
+    size_t       size;  // 每个元素的大小
+    ngx_uint_t   nalloc;  // 元素个数
     ngx_pool_t  *pool;
 } ngx_array_t;
 
@@ -37,11 +37,11 @@ ngx_array_init(ngx_array_t *array, ngx_pool_t *pool, ngx_uint_t n, size_t size)
      */
 
     array->nelts = 0;
-    array->size = size;
-    array->nalloc = n;
+    array->size = size; // 数组中一个元素的大小
+    array->nalloc = n;  // 分配元素个数
     array->pool = pool;
 
-    array->elts = ngx_palloc(pool, n * size);
+    array->elts = ngx_palloc(pool, n * size); // 从内存池中申请 n（元素个数）* size（元素大小） 内存大小
     if (array->elts == NULL) {
         return NGX_ERROR;
     }

@@ -2,13 +2,13 @@ cmake_minimum_required(VERSION 3.6)
 project(ReadNginx)
 include_directories(
     .
-    src/core 
-	src/event 
-	src/event/modules 
-	src/event/quic 
+    src/core
+	src/event
+	src/event/modules
+	src/event/quic
 	src/os/unix 
-	objs 
-	src/http 
+	objs
+	src/http
 	src/http/modules)
 set(SOURCE_FILES
     objs/ngx_modules.c
@@ -46,14 +46,14 @@ set(SOURCE_FILES
 	src/core/ngx_open_file_cache.c 
 	src/core/ngx_crypt.c 
 	src/core/ngx_proxy_protocol.c 
-	src/core/ngx_syslog.c 
-	src/event/ngx_event.c 
-	src/event/ngx_event_timer.c 
-	src/event/ngx_event_posted.c 
-	src/event/ngx_event_accept.c 
-	src/event/ngx_event_udp.c 
-	src/event/ngx_event_connect.c 
-	src/event/ngx_event_pipe.c 
+	src/core/ngx_syslog.c
+	src/event/ngx_event.c
+	src/event/ngx_event_timer.c
+	src/event/ngx_event_posted.c
+	src/event/ngx_event_accept.c
+	src/event/ngx_event_udp.c
+	src/event/ngx_event_connect.c
+	src/event/ngx_event_pipe.c
 	src/os/unix/ngx_time.c 
 	src/os/unix/ngx_errno.c 
 	src/os/unix/ngx_alloc.c 
@@ -80,57 +80,57 @@ set(SOURCE_FILES
 	src/event/modules/ngx_epoll_module.c 
 	src/os/unix/ngx_linux_sendfile_chain.c 
 	src/core/ngx_bpf.c 
-	src/core/ngx_regex.c 
-	src/http/ngx_http.c 
-	src/http/ngx_http_core_module.c 
-	src/http/ngx_http_special_response.c 
-	src/http/ngx_http_request.c 
-	src/http/ngx_http_parse.c 
-	src/http/modules/ngx_http_log_module.c 
-	src/http/ngx_http_request_body.c 
-	src/http/ngx_http_variables.c 
-	src/http/ngx_http_script.c 
-	src/http/ngx_http_upstream.c 
-	src/http/ngx_http_upstream_round_robin.c 
-	src/http/ngx_http_file_cache.c 
-	src/http/ngx_http_write_filter_module.c 
-	src/http/ngx_http_header_filter_module.c 
-	src/http/modules/ngx_http_chunked_filter_module.c 
-	src/http/modules/ngx_http_range_filter_module.c 
-	src/http/modules/ngx_http_gzip_filter_module.c 
-	src/http/ngx_http_postpone_filter_module.c 
-	src/http/modules/ngx_http_ssi_filter_module.c 
-	src/http/modules/ngx_http_charset_filter_module.c 
-	src/http/modules/ngx_http_userid_filter_module.c 
-	src/http/modules/ngx_http_headers_filter_module.c 
-	src/http/ngx_http_copy_filter_module.c 
-	src/http/modules/ngx_http_not_modified_filter_module.c 
-	src/http/modules/ngx_http_static_module.c 
-	src/http/modules/ngx_http_autoindex_module.c 
-	src/http/modules/ngx_http_index_module.c 
-	src/http/modules/ngx_http_mirror_module.c 
-	src/http/modules/ngx_http_try_files_module.c 
-	src/http/modules/ngx_http_auth_basic_module.c 
-	src/http/modules/ngx_http_access_module.c 
-	src/http/modules/ngx_http_limit_conn_module.c 
-	src/http/modules/ngx_http_limit_req_module.c 
-	src/http/modules/ngx_http_geo_module.c 
-	src/http/modules/ngx_http_map_module.c 
-	src/http/modules/ngx_http_split_clients_module.c 
-	src/http/modules/ngx_http_referer_module.c 
-	src/http/modules/ngx_http_rewrite_module.c 
-	src/http/modules/ngx_http_proxy_module.c 
-	src/http/modules/ngx_http_fastcgi_module.c 
-	src/http/modules/ngx_http_uwsgi_module.c 
-	src/http/modules/ngx_http_scgi_module.c 
-	src/http/modules/ngx_http_memcached_module.c 
-	src/http/modules/ngx_http_empty_gif_module.c 
-	src/http/modules/ngx_http_browser_module.c 
-	src/http/modules/ngx_http_upstream_hash_module.c 
-	src/http/modules/ngx_http_upstream_ip_hash_module.c 
-	src/http/modules/ngx_http_upstream_least_conn_module.c 
-	src/http/modules/ngx_http_upstream_random_module.c 
-	src/http/modules/ngx_http_upstream_keepalive_module.c 
+	src/core/ngx_regex.c
+	src/http/ngx_http.c
+	src/http/ngx_http_core_module.c
+	src/http/ngx_http_special_response.c
+	src/http/ngx_http_request.c
+	src/http/ngx_http_parse.c
+	src/http/modules/ngx_http_log_module.c
+	src/http/ngx_http_request_body.c
+	src/http/ngx_http_variables.c
+	src/http/ngx_http_script.c
+	src/http/ngx_http_upstream.c
+	src/http/ngx_http_upstream_round_robin.c
+	src/http/ngx_http_file_cache.c
+	src/http/ngx_http_write_filter_module.c
+	src/http/ngx_http_header_filter_module.c
+	src/http/modules/ngx_http_chunked_filter_module.c
+	src/http/modules/ngx_http_range_filter_module.c
+	src/http/modules/ngx_http_gzip_filter_module.c
+	src/http/ngx_http_postpone_filter_module.c
+	src/http/modules/ngx_http_ssi_filter_module.c
+	src/http/modules/ngx_http_charset_filter_module.c
+	src/http/modules/ngx_http_userid_filter_module.c
+	src/http/modules/ngx_http_headers_filter_module.c
+	src/http/ngx_http_copy_filter_module.c
+	src/http/modules/ngx_http_not_modified_filter_module.c
+	src/http/modules/ngx_http_static_module.c
+	src/http/modules/ngx_http_autoindex_module.c
+	src/http/modules/ngx_http_index_module.c
+	src/http/modules/ngx_http_mirror_module.c
+	src/http/modules/ngx_http_try_files_module.c
+	src/http/modules/ngx_http_auth_basic_module.c
+	src/http/modules/ngx_http_access_module.c
+	src/http/modules/ngx_http_limit_conn_module.c
+	src/http/modules/ngx_http_limit_req_module.c
+	src/http/modules/ngx_http_geo_module.c
+	src/http/modules/ngx_http_map_module.c
+	src/http/modules/ngx_http_split_clients_module.c
+	src/http/modules/ngx_http_referer_module.c
+	src/http/modules/ngx_http_rewrite_module.c
+	src/http/modules/ngx_http_proxy_module.c
+	src/http/modules/ngx_http_fastcgi_module.c
+	src/http/modules/ngx_http_uwsgi_module.c
+	src/http/modules/ngx_http_scgi_module.c
+	src/http/modules/ngx_http_memcached_module.c
+	src/http/modules/ngx_http_empty_gif_module.c
+	src/http/modules/ngx_http_browser_module.c
+	src/http/modules/ngx_http_upstream_hash_module.c
+	src/http/modules/ngx_http_upstream_ip_hash_module.c
+	src/http/modules/ngx_http_upstream_least_conn_module.c
+	src/http/modules/ngx_http_upstream_random_module.c
+	src/http/modules/ngx_http_upstream_keepalive_module.c
 	src/http/modules/ngx_http_upstream_zone_module.c)
 add_executable(nginx ${SOURCE_FILES})
 target_link_libraries(nginx dl pthread crypt pcre z)

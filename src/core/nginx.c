@@ -192,6 +192,8 @@ static char        *ngx_signal;
 
 static char **ngx_os_environ;
 
+// 测试代码申明
+void test_array();
 
 int ngx_cdecl
 main(int argc, char *const *argv)
@@ -204,6 +206,9 @@ main(int argc, char *const *argv)
     ngx_core_conf_t  *ccf;
 
     ngx_debug_init();
+
+    // 测试代码集
+    test_array();
 
     if (ngx_strerror_init() != NGX_OK) {
         return 1;
@@ -1674,3 +1679,22 @@ ngx_unload_module(void *data)
 }
 
 #endif
+
+void test_array() {
+  // 创建内存池
+  ngx_pool_t* ngx_pool = ngx_create_pool(2048, NULL);
+
+  // 创建数组，存储 `int` 类型的元素，初始容量为 5
+  ngx_array_t* ngx_array = ngx_array_create(ngx_pool, sizeof(int), 5);
+
+  int num = 10;
+
+  // 分配数组的一个新元素
+  int* elem = ngx_array_push(ngx_array);
+  if (elem != NULL) {
+    *elem = num;  // 将值赋给数组中的新元素
+  }
+
+  // 清理内存池
+  ngx_destroy_pool(ngx_pool);
+}
