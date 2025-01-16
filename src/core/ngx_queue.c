@@ -18,6 +18,7 @@ static void ngx_queue_merge(ngx_queue_t *queue, ngx_queue_t *tail,
  * or the first element of the queue's second part otherwise
  */
 
+// 获取链表中间节点
 ngx_queue_t *
 ngx_queue_middle(ngx_queue_t *queue)
 {
@@ -49,8 +50,7 @@ ngx_queue_middle(ngx_queue_t *queue)
 }
 
 
-/* the stable merge sort */
-
+// 链表排序，稳定
 void
 ngx_queue_sort(ngx_queue_t *queue,
     ngx_int_t (*cmp)(const ngx_queue_t *, const ngx_queue_t *))

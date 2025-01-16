@@ -189,6 +189,7 @@ static char **ngx_os_environ;
 void test_array();
 void test_multi_array();
 void test_list();
+void test_queue();
 
 int ngx_cdecl
 main(int argc, char *const *argv) {
@@ -205,6 +206,7 @@ main(int argc, char *const *argv) {
     // test_array();
     // test_multi_array();
     // test_list();
+    test_queue();
     // =============================测试代码集 start =============================
 
     if (ngx_strerror_init() != NGX_OK) {
@@ -1705,5 +1707,39 @@ void test_list() {
             i = 0; // 重置索引为 0
         }
         printf("Element value: %d\n", data[i].value);
+    }
+}
+
+typedef struct {
+  int id;               // 数据字段
+  ngx_queue_t queue;    // 链表节点
+} MyStruct;
+
+
+void test_queue(){
+    // 定义链表头
+    ngx_queue_t queue_head;
+    ngx_queue_init(&queue_head);
+
+    // 创建一些 MyStruct 数据
+    MyStruct a = {1, {NULL, NULL}};
+    MyStruct b = {2, {NULL, NULL}};
+    MyStruct c = {3, {NULL, NULL}};
+
+    // 将节点插入链表
+    ngx_queue_insert_head(&queue_head, &a.queue);
+    ngx_queue_insert_head(&queue_head, &b.queue);
+    ngx_queue_insert_head(&queue_head, &c.queue);
+
+    // 遍历链表并打印每个结构体的 ID
+    printf("链表内容:\n");
+    ngx_queue_t *head = &queue_head;
+    ngx_queue_t *current = head->next;
+
+    while (current != head) {
+        // 使用 ngx_queue_data 从节点恢复到 MyStruct
+        MyStruct *data = ngx_queue_data(current, MyStruct, queue);
+        printf("ID: %d\n", data->id);
+        current = current->next;
     }
 }
