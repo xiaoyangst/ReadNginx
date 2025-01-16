@@ -9,7 +9,6 @@
 #include <ngx_core.h>
 #include <nginx.h>
 
-
 static void ngx_show_version_info(void);
 static ngx_int_t ngx_add_inherited_sockets(ngx_cycle_t *cycle);
 static void ngx_cleanup_environment(void *data);
@@ -23,148 +22,144 @@ static char *ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_set_env(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_set_priority(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+                                  void *conf);
 static char *ngx_set_worker_processes(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+                                      void *conf);
 static char *ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 #if (NGX_HAVE_DLOPEN)
 static void ngx_unload_module(void *data);
 #endif
 
-
-static ngx_conf_enum_t  ngx_debug_points[] = {
-    { ngx_string("stop"), NGX_DEBUG_POINTS_STOP },
-    { ngx_string("abort"), NGX_DEBUG_POINTS_ABORT },
-    { ngx_null_string, 0 }
+static ngx_conf_enum_t ngx_debug_points[] = {
+    {ngx_string("stop"), NGX_DEBUG_POINTS_STOP},
+    {ngx_string("abort"), NGX_DEBUG_POINTS_ABORT},
+    {ngx_null_string, 0}
 };
 
+static ngx_command_t ngx_core_commands[] = {
 
-static ngx_command_t  ngx_core_commands[] = {
+    {ngx_string("daemon"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_FLAG,
+     ngx_conf_set_flag_slot,
+     0,
+     offsetof(ngx_core_conf_t, daemon),
+     NULL},
 
-    { ngx_string("daemon"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_FLAG,
-      ngx_conf_set_flag_slot,
-      0,
-      offsetof(ngx_core_conf_t, daemon),
-      NULL },
+    {ngx_string("master_process"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_FLAG,
+     ngx_conf_set_flag_slot,
+     0,
+     offsetof(ngx_core_conf_t, master),
+     NULL},
 
-    { ngx_string("master_process"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_FLAG,
-      ngx_conf_set_flag_slot,
-      0,
-      offsetof(ngx_core_conf_t, master),
-      NULL },
+    {ngx_string("timer_resolution"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_conf_set_msec_slot,
+     0,
+     offsetof(ngx_core_conf_t, timer_resolution),
+     NULL},
 
-    { ngx_string("timer_resolution"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_msec_slot,
-      0,
-      offsetof(ngx_core_conf_t, timer_resolution),
-      NULL },
+    {ngx_string("pid"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_conf_set_str_slot,
+     0,
+     offsetof(ngx_core_conf_t, pid),
+     NULL},
 
-    { ngx_string("pid"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      0,
-      offsetof(ngx_core_conf_t, pid),
-      NULL },
+    {ngx_string("lock_file"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_conf_set_str_slot,
+     0,
+     offsetof(ngx_core_conf_t, lock_file),
+     NULL},
 
-    { ngx_string("lock_file"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      0,
-      offsetof(ngx_core_conf_t, lock_file),
-      NULL },
+    {ngx_string("worker_processes"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_set_worker_processes,
+     0,
+     0,
+     NULL},
 
-    { ngx_string("worker_processes"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_set_worker_processes,
-      0,
-      0,
-      NULL },
+    {ngx_string("debug_points"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_conf_set_enum_slot,
+     0,
+     offsetof(ngx_core_conf_t, debug_points),
+     &ngx_debug_points},
 
-    { ngx_string("debug_points"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_enum_slot,
-      0,
-      offsetof(ngx_core_conf_t, debug_points),
-      &ngx_debug_points },
+    {ngx_string("user"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE12,
+     ngx_set_user,
+     0,
+     0,
+     NULL},
 
-    { ngx_string("user"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE12,
-      ngx_set_user,
-      0,
-      0,
-      NULL },
+    {ngx_string("worker_priority"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_set_priority,
+     0,
+     0,
+     NULL},
 
-    { ngx_string("worker_priority"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_set_priority,
-      0,
-      0,
-      NULL },
+    {ngx_string("worker_cpu_affinity"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_1MORE,
+     ngx_set_cpu_affinity,
+     0,
+     0,
+     NULL},
 
-    { ngx_string("worker_cpu_affinity"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_1MORE,
-      ngx_set_cpu_affinity,
-      0,
-      0,
-      NULL },
+    {ngx_string("worker_rlimit_nofile"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_conf_set_num_slot,
+     0,
+     offsetof(ngx_core_conf_t, rlimit_nofile),
+     NULL},
 
-    { ngx_string("worker_rlimit_nofile"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_num_slot,
-      0,
-      offsetof(ngx_core_conf_t, rlimit_nofile),
-      NULL },
+    {ngx_string("worker_rlimit_core"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_conf_set_off_slot,
+     0,
+     offsetof(ngx_core_conf_t, rlimit_core),
+     NULL},
 
-    { ngx_string("worker_rlimit_core"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_off_slot,
-      0,
-      offsetof(ngx_core_conf_t, rlimit_core),
-      NULL },
+    {ngx_string("worker_shutdown_timeout"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_conf_set_msec_slot,
+     0,
+     offsetof(ngx_core_conf_t, shutdown_timeout),
+     NULL},
 
-    { ngx_string("worker_shutdown_timeout"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_msec_slot,
-      0,
-      offsetof(ngx_core_conf_t, shutdown_timeout),
-      NULL },
+    {ngx_string("working_directory"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_conf_set_str_slot,
+     0,
+     offsetof(ngx_core_conf_t, working_directory),
+     NULL},
 
-    { ngx_string("working_directory"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      0,
-      offsetof(ngx_core_conf_t, working_directory),
-      NULL },
+    {ngx_string("env"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_set_env,
+     0,
+     0,
+     NULL},
 
-    { ngx_string("env"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_set_env,
-      0,
-      0,
-      NULL },
+    {ngx_string("load_module"),
+     NGX_MAIN_CONF | NGX_DIRECT_CONF | NGX_CONF_TAKE1,
+     ngx_load_module,
+     0,
+     0,
+     NULL},
 
-    { ngx_string("load_module"),
-      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_load_module,
-      0,
-      0,
-      NULL },
-
-      ngx_null_command
+    ngx_null_command
 };
 
-
-static ngx_core_module_t  ngx_core_module_ctx = {
+static ngx_core_module_t ngx_core_module_ctx = {
     ngx_string("core"),
     ngx_core_module_create_conf,
     ngx_core_module_init_conf
 };
 
-
-ngx_module_t  ngx_core_module = {
+ngx_module_t ngx_core_module = {
     NGX_MODULE_V1,
     &ngx_core_module_ctx,                  /* module context */
     ngx_core_commands,                     /* module directives */
@@ -179,36 +174,38 @@ ngx_module_t  ngx_core_module = {
     NGX_MODULE_V1_PADDING
 };
 
-
-static ngx_uint_t   ngx_show_help;
-static ngx_uint_t   ngx_show_version;
-static ngx_uint_t   ngx_show_configure;
-static u_char      *ngx_prefix;
-static u_char      *ngx_error_log;
-static u_char      *ngx_conf_file;
-static u_char      *ngx_conf_params;
-static char        *ngx_signal;
-
+static ngx_uint_t ngx_show_help;
+static ngx_uint_t ngx_show_version;
+static ngx_uint_t ngx_show_configure;
+static u_char *ngx_prefix;
+static u_char *ngx_error_log;
+static u_char *ngx_conf_file;
+static u_char *ngx_conf_params;
+static char *ngx_signal;
 
 static char **ngx_os_environ;
 
 // 测试代码申明
 void test_array();
+void test_multi_array();
+void test_list();
 
 int ngx_cdecl
-main(int argc, char *const *argv)
-{
-    ngx_buf_t        *b;
-    ngx_log_t        *log;
-    ngx_uint_t        i;
-    ngx_cycle_t      *cycle, init_cycle;
-    ngx_conf_dump_t  *cd;
-    ngx_core_conf_t  *ccf;
+main(int argc, char *const *argv) {
+    ngx_buf_t *b;
+    ngx_log_t *log;
+    ngx_uint_t i;
+    ngx_cycle_t *cycle, init_cycle;
+    ngx_conf_dump_t *cd;
+    ngx_core_conf_t *ccf;
 
     ngx_debug_init();
 
-    // 测试代码集
-    test_array();
+    // =============================测试代码集 start =============================
+    // test_array();
+    // test_multi_array();
+    // test_list();
+    // =============================测试代码集 start =============================
 
     if (ngx_strerror_init() != NGX_OK) {
         return 1;
@@ -242,9 +239,9 @@ main(int argc, char *const *argv)
         return 1;
     }
 
-    /* STUB */
+        /* STUB */
 #if (NGX_OPENSSL)
-    ngx_ssl_init(log);
+        ngx_ssl_init(log);
 #endif
 
     /*
@@ -392,45 +389,43 @@ main(int argc, char *const *argv)
     return 0;
 }
 
-
 static void
-ngx_show_version_info(void)
-{
+ngx_show_version_info(void) {
     ngx_write_stderr("nginx version: " NGINX_VER_BUILD NGX_LINEFEED);
 
     if (ngx_show_help) {
         ngx_write_stderr(
             "Usage: nginx [-?hvVtTq] [-s signal] [-p prefix]" NGX_LINEFEED
             "             [-e filename] [-c filename] [-g directives]"
-                          NGX_LINEFEED NGX_LINEFEED
+            NGX_LINEFEED NGX_LINEFEED
             "Options:" NGX_LINEFEED
             "  -?,-h         : this help" NGX_LINEFEED
             "  -v            : show version and exit" NGX_LINEFEED
             "  -V            : show version and configure options then exit"
-                               NGX_LINEFEED
+            NGX_LINEFEED
             "  -t            : test configuration and exit" NGX_LINEFEED
             "  -T            : test configuration, dump it and exit"
-                               NGX_LINEFEED
+            NGX_LINEFEED
             "  -q            : suppress non-error messages "
-                               "during configuration testing" NGX_LINEFEED
+            "during configuration testing" NGX_LINEFEED
             "  -s signal     : send signal to a master process: "
-                               "stop, quit, reopen, reload" NGX_LINEFEED
-#ifdef NGX_PREFIX
+            "stop, quit, reopen, reload" NGX_LINEFEED
+            #ifdef NGX_PREFIX
             "  -p prefix     : set prefix path (default: " NGX_PREFIX ")"
-                               NGX_LINEFEED
-#else
+            NGX_LINEFEED
+            #else
             "  -p prefix     : set prefix path (default: NONE)" NGX_LINEFEED
-#endif
+            #endif
             "  -e filename   : set error log file (default: "
-#ifdef NGX_ERROR_LOG_STDERR
-                               "stderr)" NGX_LINEFEED
-#else
-                               NGX_ERROR_LOG_PATH ")" NGX_LINEFEED
-#endif
+            #ifdef NGX_ERROR_LOG_STDERR
+            "stderr)" NGX_LINEFEED
+            #else
+            NGX_ERROR_LOG_PATH ")" NGX_LINEFEED
+            #endif
             "  -c filename   : set configuration file (default: " NGX_CONF_PATH
-                               ")" NGX_LINEFEED
+            ")" NGX_LINEFEED
             "  -g directives : set global directives out of configuration "
-                               "file" NGX_LINEFEED NGX_LINEFEED
+            "file" NGX_LINEFEED NGX_LINEFEED
         );
     }
 
@@ -460,13 +455,11 @@ ngx_show_version_info(void)
     }
 }
 
-
 static ngx_int_t
-ngx_add_inherited_sockets(ngx_cycle_t *cycle)
-{
-    u_char           *p, *v, *inherited;
-    ngx_int_t         s;
-    ngx_listening_t  *ls;
+ngx_add_inherited_sockets(ngx_cycle_t *cycle) {
+    u_char *p, *v, *inherited;
+    ngx_int_t s;
+    ngx_listening_t *ls;
 
     inherited = (u_char *) getenv(NGINX_VAR);
 
@@ -479,8 +472,7 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
 
     if (ngx_array_init(&cycle->listening, cycle->pool, 10,
                        sizeof(ngx_listening_t))
-        != NGX_OK)
-    {
+        != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -490,8 +482,8 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
             if (s == NGX_ERROR) {
                 ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
                               "invalid socket number \"%s\" in " NGINX_VAR
-                              " environment variable, ignoring the rest"
-                              " of the variable", v);
+                                  " environment variable, ignoring the rest"
+                                  " of the variable", v);
                 break;
             }
 
@@ -512,7 +504,7 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
     if (v != p) {
         ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
                       "invalid socket number \"%s\" in " NGINX_VAR
-                      " environment variable, ignoring", v);
+                          " environment variable, ignoring", v);
     }
 
     ngx_inherited = 1;
@@ -520,16 +512,14 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
     return ngx_set_inherited_sockets(cycle);
 }
 
-
 char **
-ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
-{
-    char                **p, **env, *str;
-    size_t                len;
-    ngx_str_t            *var;
-    ngx_uint_t            i, n;
-    ngx_core_conf_t      *ccf;
-    ngx_pool_cleanup_t   *cln;
+ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last) {
+    char **p, **env, *str;
+    size_t len;
+    ngx_str_t *var;
+    ngx_uint_t i, n;
+    ngx_core_conf_t *ccf;
+    ngx_pool_cleanup_t *cln;
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
@@ -541,8 +531,7 @@ ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
 
     for (i = 0; i < ccf->env.nelts; i++) {
         if (ngx_strcmp(var[i].data, "TZ") == 0
-            || ngx_strncmp(var[i].data, "TZ=", 3) == 0)
-        {
+            || ngx_strncmp(var[i].data, "TZ=", 3) == 0) {
             goto tz_found;
         }
     }
@@ -557,7 +546,7 @@ ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
 
     var = ccf->env.elts;
 
-tz_found:
+    tz_found:
 
     n = 0;
 
@@ -571,8 +560,7 @@ tz_found:
         for (p = ngx_os_environ; *p; p++) {
 
             if (ngx_strncmp(*p, var[i].data, var[i].len) == 0
-                && (*p)[var[i].len] == '=')
-            {
+                && (*p)[var[i].len] == '=') {
                 n++;
                 break;
             }
@@ -638,8 +626,7 @@ tz_found:
         for (p = ngx_os_environ; *p; p++) {
 
             if (ngx_strncmp(*p, var[i].data, var[i].len) == 0
-                && (*p)[var[i].len] == '=')
-            {
+                && (*p)[var[i].len] == '=') {
                 env[n++] = *p;
                 break;
             }
@@ -656,11 +643,9 @@ tz_found:
     return env;
 }
 
-
 static void
-ngx_cleanup_environment(void *data)
-{
-    char  **env = data;
+ngx_cleanup_environment(void *data) {
+    char **env = data;
 
     if (environ == env) {
 
@@ -675,13 +660,11 @@ ngx_cleanup_environment(void *data)
     ngx_free(env);
 }
 
-
 static void
-ngx_cleanup_environment_variable(void *data)
-{
-    char  *var = data;
+ngx_cleanup_environment_variable(void *data) {
+    char *var = data;
 
-    char  **p;
+    char **p;
 
     for (p = environ; *p; p++) {
 
@@ -698,17 +681,15 @@ ngx_cleanup_environment_variable(void *data)
     ngx_free(var);
 }
 
-
 ngx_pid_t
-ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
-{
-    char             **env, *var;
-    u_char            *p;
-    ngx_uint_t         i, n;
-    ngx_pid_t          pid;
-    ngx_exec_ctx_t     ctx;
-    ngx_core_conf_t   *ccf;
-    ngx_listening_t   *ls;
+ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv) {
+    char **env, *var;
+    u_char *p;
+    ngx_uint_t i, n;
+    ngx_pid_t pid;
+    ngx_exec_ctx_t ctx;
+    ngx_core_conf_t *ccf;
+    ngx_listening_t *ls;
 
     ngx_memzero(&ctx, sizeof(ngx_exec_ctx_t));
 
@@ -723,7 +704,7 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
     }
 
     var = ngx_alloc(sizeof(NGINX_VAR)
-                    + cycle->listening.nelts * (NGX_INT32_LEN + 1) + 2,
+                        + cycle->listening.nelts * (NGX_INT32_LEN + 1) + 2,
                     cycle->log);
     if (var == NULL) {
         ngx_free(env);
@@ -774,7 +755,7 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
     if (ngx_rename_file(ccf->pid.data, ccf->oldpid.data) == NGX_FILE_ERROR) {
         ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                       ngx_rename_file_n " %s to %s failed "
-                      "before executing new binary process \"%s\"",
+                                        "before executing new binary process \"%s\"",
                       ccf->pid.data, ccf->oldpid.data, argv[0]);
 
         ngx_free(env);
@@ -787,11 +768,10 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
 
     if (pid == NGX_INVALID_PID) {
         if (ngx_rename_file(ccf->oldpid.data, ccf->pid.data)
-            == NGX_FILE_ERROR)
-        {
+            == NGX_FILE_ERROR) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           ngx_rename_file_n " %s back to %s failed after "
-                          "an attempt to execute new binary process \"%s\"",
+                                            "an attempt to execute new binary process \"%s\"",
                           ccf->oldpid.data, ccf->pid.data, argv[0]);
         }
     }
@@ -802,12 +782,10 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
     return pid;
 }
 
-
 static ngx_int_t
-ngx_get_options(int argc, char *const *argv)
-{
-    u_char     *p;
-    ngx_int_t   i;
+ngx_get_options(int argc, char *const *argv) {
+    u_char *p;
+    ngx_int_t i;
 
     for (i = 1; i < argc; i++) {
 
@@ -822,125 +800,117 @@ ngx_get_options(int argc, char *const *argv)
 
             switch (*p++) {
 
-            case '?':
-            case 'h':
-                ngx_show_version = 1;
-                ngx_show_help = 1;
-                break;
+                case '?':
+                case 'h':ngx_show_version = 1;
+                    ngx_show_help = 1;
+                    break;
 
-            case 'v':
-                ngx_show_version = 1;
-                break;
+                case 'v':ngx_show_version = 1;
+                    break;
 
-            case 'V':
-                ngx_show_version = 1;
-                ngx_show_configure = 1;
-                break;
+                case 'V':ngx_show_version = 1;
+                    ngx_show_configure = 1;
+                    break;
 
-            case 't':
-                ngx_test_config = 1;
-                break;
+                case 't':ngx_test_config = 1;
+                    break;
 
-            case 'T':
-                ngx_test_config = 1;
-                ngx_dump_config = 1;
-                break;
+                case 'T':ngx_test_config = 1;
+                    ngx_dump_config = 1;
+                    break;
 
-            case 'q':
-                ngx_quiet_mode = 1;
-                break;
+                case 'q':ngx_quiet_mode = 1;
+                    break;
 
-            case 'p':
-                if (*p) {
-                    ngx_prefix = p;
-                    goto next;
-                }
+                case 'p':
+                    if (*p) {
+                        ngx_prefix = p;
+                        goto next;
+                    }
 
-                if (argv[++i]) {
-                    ngx_prefix = (u_char *) argv[i];
-                    goto next;
-                }
+                    if (argv[++i]) {
+                        ngx_prefix = (u_char *) argv[i];
+                        goto next;
+                    }
 
-                ngx_log_stderr(0, "option \"-p\" requires directory name");
-                return NGX_ERROR;
-
-            case 'e':
-                if (*p) {
-                    ngx_error_log = p;
-
-                } else if (argv[++i]) {
-                    ngx_error_log = (u_char *) argv[i];
-
-                } else {
-                    ngx_log_stderr(0, "option \"-e\" requires file name");
+                    ngx_log_stderr(0, "option \"-p\" requires directory name");
                     return NGX_ERROR;
-                }
 
-                if (ngx_strcmp(ngx_error_log, "stderr") == 0) {
-                    ngx_error_log = (u_char *) "";
-                }
+                case 'e':
+                    if (*p) {
+                        ngx_error_log = p;
 
-                goto next;
+                    } else if (argv[++i]) {
+                        ngx_error_log = (u_char *) argv[i];
 
-            case 'c':
-                if (*p) {
-                    ngx_conf_file = p;
+                    } else {
+                        ngx_log_stderr(0, "option \"-e\" requires file name");
+                        return NGX_ERROR;
+                    }
+
+                    if (ngx_strcmp(ngx_error_log, "stderr") == 0) {
+                        ngx_error_log = (u_char *) "";
+                    }
+
                     goto next;
-                }
 
-                if (argv[++i]) {
-                    ngx_conf_file = (u_char *) argv[i];
-                    goto next;
-                }
+                case 'c':
+                    if (*p) {
+                        ngx_conf_file = p;
+                        goto next;
+                    }
 
-                ngx_log_stderr(0, "option \"-c\" requires file name");
-                return NGX_ERROR;
+                    if (argv[++i]) {
+                        ngx_conf_file = (u_char *) argv[i];
+                        goto next;
+                    }
 
-            case 'g':
-                if (*p) {
-                    ngx_conf_params = p;
-                    goto next;
-                }
-
-                if (argv[++i]) {
-                    ngx_conf_params = (u_char *) argv[i];
-                    goto next;
-                }
-
-                ngx_log_stderr(0, "option \"-g\" requires parameter");
-                return NGX_ERROR;
-
-            case 's':
-                if (*p) {
-                    ngx_signal = (char *) p;
-
-                } else if (argv[++i]) {
-                    ngx_signal = argv[i];
-
-                } else {
-                    ngx_log_stderr(0, "option \"-s\" requires parameter");
+                    ngx_log_stderr(0, "option \"-c\" requires file name");
                     return NGX_ERROR;
-                }
 
-                if (ngx_strcmp(ngx_signal, "stop") == 0
-                    || ngx_strcmp(ngx_signal, "quit") == 0
-                    || ngx_strcmp(ngx_signal, "reopen") == 0
-                    || ngx_strcmp(ngx_signal, "reload") == 0)
-                {
-                    ngx_process = NGX_PROCESS_SIGNALLER;
-                    goto next;
-                }
+                case 'g':
+                    if (*p) {
+                        ngx_conf_params = p;
+                        goto next;
+                    }
 
-                ngx_log_stderr(0, "invalid option: \"-s %s\"", ngx_signal);
-                return NGX_ERROR;
+                    if (argv[++i]) {
+                        ngx_conf_params = (u_char *) argv[i];
+                        goto next;
+                    }
 
-            default:
-                ngx_log_stderr(0, "invalid option: \"%c\"", *(p - 1));
-                return NGX_ERROR;
+                    ngx_log_stderr(0, "option \"-g\" requires parameter");
+                    return NGX_ERROR;
+
+                case 's':
+                    if (*p) {
+                        ngx_signal = (char *) p;
+
+                    } else if (argv[++i]) {
+                        ngx_signal = argv[i];
+
+                    } else {
+                        ngx_log_stderr(0, "option \"-s\" requires parameter");
+                        return NGX_ERROR;
+                    }
+
+                    if (ngx_strcmp(ngx_signal, "stop") == 0
+                        || ngx_strcmp(ngx_signal, "quit") == 0
+                        || ngx_strcmp(ngx_signal, "reopen") == 0
+                        || ngx_strcmp(ngx_signal, "reload") == 0) {
+                        ngx_process = NGX_PROCESS_SIGNALLER;
+                        goto next;
+                    }
+
+                    ngx_log_stderr(0, "invalid option: \"-s %s\"", ngx_signal);
+                    return NGX_ERROR;
+
+                default:ngx_log_stderr(0, "invalid option: \"%c\"", *(p - 1));
+                    return NGX_ERROR;
             }
         }
 
-    next:
+        next:
 
         continue;
     }
@@ -948,10 +918,8 @@ ngx_get_options(int argc, char *const *argv)
     return NGX_OK;
 }
 
-
 static ngx_int_t
-ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
-{
+ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv) {
 #if (NGX_FREEBSD)
 
     ngx_os_argv = (char **) argv;
@@ -959,8 +927,8 @@ ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
     ngx_argv = (char **) argv;
 
 #else
-    size_t     len;
-    ngx_int_t  i;
+    size_t len;
+    ngx_int_t i;
 
     ngx_os_argv = (char **) argv;
     ngx_argc = argc;
@@ -990,12 +958,10 @@ ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
     return NGX_OK;
 }
 
-
 static ngx_int_t
-ngx_process_options(ngx_cycle_t *cycle)
-{
-    u_char  *p;
-    size_t   len;
+ngx_process_options(ngx_cycle_t *cycle) {
+    u_char *p;
+    size_t len;
 
     if (ngx_prefix) {
         len = ngx_strlen(ngx_prefix);
@@ -1065,8 +1031,7 @@ ngx_process_options(ngx_cycle_t *cycle)
 
     for (p = cycle->conf_file.data + cycle->conf_file.len - 1;
          p > cycle->conf_file.data;
-         p--)
-    {
+         p--) {
         if (ngx_path_separator(*p)) {
             cycle->conf_prefix.len = p - cycle->conf_file.data + 1;
             cycle->conf_prefix.data = cycle->conf_file.data;
@@ -1094,11 +1059,9 @@ ngx_process_options(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-
 static void *
-ngx_core_module_create_conf(ngx_cycle_t *cycle)
-{
-    ngx_core_conf_t  *ccf;
+ngx_core_module_create_conf(ngx_cycle_t *cycle) {
+    ngx_core_conf_t *ccf;
 
     ccf = ngx_pcalloc(cycle->pool, sizeof(ngx_core_conf_t));
     if (ccf == NULL) {
@@ -1131,19 +1094,16 @@ ngx_core_module_create_conf(ngx_cycle_t *cycle)
     ccf->group = (ngx_gid_t) NGX_CONF_UNSET_UINT;
 
     if (ngx_array_init(&ccf->env, cycle->pool, 1, sizeof(ngx_str_t))
-        != NGX_OK)
-    {
+        != NGX_OK) {
         return NULL;
     }
 
     return ccf;
 }
 
-
 static char *
-ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
-{
-    ngx_core_conf_t  *ccf = conf;
+ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf) {
+    ngx_core_conf_t *ccf = conf;
 
     ngx_conf_init_value(ccf->daemon, 1);
     ngx_conf_init_value(ccf->master, 1);
@@ -1158,8 +1118,7 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
     if (!ccf->cpu_affinity_auto
         && ccf->cpu_affinity_n
         && ccf->cpu_affinity_n != 1
-        && ccf->cpu_affinity_n != (ngx_uint_t) ccf->worker_processes)
-    {
+        && ccf->cpu_affinity_n != (ngx_uint_t) ccf->worker_processes) {
         ngx_log_error(NGX_LOG_WARN, cycle->log, 0,
                       "the number of \"worker_processes\" is not equal to "
                       "the number of \"worker_cpu_affinity\" masks, "
@@ -1167,7 +1126,6 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
     }
 
 #endif
-
 
     if (ccf->pid.len == 0) {
         ngx_str_set(&ccf->pid, NGX_PID_PATH);
@@ -1187,12 +1145,11 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
     ngx_memcpy(ngx_cpymem(ccf->oldpid.data, ccf->pid.data, ccf->pid.len),
                NGX_OLDPID_EXT, sizeof(NGX_OLDPID_EXT));
 
-
 #if !(NGX_WIN32)
 
     if (ccf->user == (uid_t) NGX_CONF_UNSET_UINT && geteuid() == 0) {
-        struct group   *grp;
-        struct passwd  *pwd;
+        struct group *grp;
+        struct passwd *pwd;
 
         ngx_set_errno(0);
         pwd = getpwnam(NGX_USER);
@@ -1216,7 +1173,6 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
         ccf->group = grp->gr_gid;
     }
 
-
     if (ccf->lock_file.len == 0) {
         ngx_str_set(&ccf->lock_file, NGX_LOCK_PATH);
     }
@@ -1226,41 +1182,40 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
     }
 
     {
-    ngx_str_t  lock_file;
+        ngx_str_t lock_file;
 
-    lock_file = cycle->old_cycle->lock_file;
+        lock_file = cycle->old_cycle->lock_file;
 
-    if (lock_file.len) {
-        lock_file.len--;
+        if (lock_file.len) {
+            lock_file.len--;
 
-        if (ccf->lock_file.len != lock_file.len
-            || ngx_strncmp(ccf->lock_file.data, lock_file.data, lock_file.len)
-               != 0)
-        {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                          "\"lock_file\" could not be changed, ignored");
+            if (ccf->lock_file.len != lock_file.len
+                || ngx_strncmp(ccf->lock_file.data, lock_file.data, lock_file.len)
+                    != 0) {
+                ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
+                              "\"lock_file\" could not be changed, ignored");
+            }
+
+            cycle->lock_file.len = lock_file.len + 1;
+            lock_file.len += sizeof(".accept");
+
+            cycle->lock_file.data = ngx_pstrdup(cycle->pool, &lock_file);
+            if (cycle->lock_file.data == NULL) {
+                return NGX_CONF_ERROR;
+            }
+
+        } else {
+            cycle->lock_file.len = ccf->lock_file.len + 1;
+            cycle->lock_file.data = ngx_pnalloc(cycle->pool,
+                                                ccf->lock_file.len + sizeof(".accept"));
+            if (cycle->lock_file.data == NULL) {
+                return NGX_CONF_ERROR;
+            }
+
+            ngx_memcpy(ngx_cpymem(cycle->lock_file.data, ccf->lock_file.data,
+                                  ccf->lock_file.len),
+                       ".accept", sizeof(".accept"));
         }
-
-        cycle->lock_file.len = lock_file.len + 1;
-        lock_file.len += sizeof(".accept");
-
-        cycle->lock_file.data = ngx_pstrdup(cycle->pool, &lock_file);
-        if (cycle->lock_file.data == NULL) {
-            return NGX_CONF_ERROR;
-        }
-
-    } else {
-        cycle->lock_file.len = ccf->lock_file.len + 1;
-        cycle->lock_file.data = ngx_pnalloc(cycle->pool,
-                                      ccf->lock_file.len + sizeof(".accept"));
-        if (cycle->lock_file.data == NULL) {
-            return NGX_CONF_ERROR;
-        }
-
-        ngx_memcpy(ngx_cpymem(cycle->lock_file.data, ccf->lock_file.data,
-                              ccf->lock_file.len),
-                   ".accept", sizeof(".accept"));
-    }
     }
 
 #endif
@@ -1268,10 +1223,8 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
     return NGX_CONF_OK;
 }
 
-
 static char *
-ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
+ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
 #if (NGX_WIN32)
 
     ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
@@ -1281,12 +1234,12 @@ ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 #else
 
-    ngx_core_conf_t  *ccf = conf;
+    ngx_core_conf_t *ccf = conf;
 
-    char             *group;
-    struct passwd    *pwd;
-    struct group     *grp;
-    ngx_str_t        *value;
+    char *group;
+    struct passwd *pwd;
+    struct group *grp;
+    ngx_str_t *value;
 
     if (ccf->user != (uid_t) NGX_CONF_UNSET_UINT) {
         return "is duplicate";
@@ -1331,14 +1284,12 @@ ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #endif
 }
 
-
 static char *
-ngx_set_env(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_core_conf_t  *ccf = conf;
+ngx_set_env(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    ngx_core_conf_t *ccf = conf;
 
-    ngx_str_t   *value, *var;
-    ngx_uint_t   i;
+    ngx_str_t *value, *var;
+    ngx_uint_t i;
 
     var = ngx_array_push(&ccf->env);
     if (var == NULL) {
@@ -1361,14 +1312,12 @@ ngx_set_env(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-
 static char *
-ngx_set_priority(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_core_conf_t  *ccf = conf;
+ngx_set_priority(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    ngx_core_conf_t *ccf = conf;
 
-    ngx_str_t        *value;
-    ngx_uint_t        n, minus;
+    ngx_str_t *value;
+    ngx_uint_t n, minus;
 
     if (ccf->priority != 0) {
         return "is duplicate";
@@ -1401,17 +1350,15 @@ ngx_set_priority(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-
 static char *
-ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
+ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
 #if (NGX_HAVE_CPU_AFFINITY)
-    ngx_core_conf_t  *ccf = conf;
+    ngx_core_conf_t *ccf = conf;
 
-    u_char            ch, *p;
-    ngx_str_t        *value;
-    ngx_uint_t        i, n;
-    ngx_cpuset_t     *mask;
+    u_char ch, *p;
+    ngx_str_t *value;
+    ngx_uint_t i, n;
+    ngx_cpuset_t *mask;
 
     if (ccf->cpu_affinity) {
         return "is duplicate";
@@ -1453,8 +1400,8 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         if (value[n].len > CPU_SETSIZE) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                         "\"worker_cpu_affinity\" supports up to %d CPUs only",
-                         CPU_SETSIZE);
+                               "\"worker_cpu_affinity\" supports up to %d CPUs only",
+                               CPU_SETSIZE);
             return NGX_CONF_ERROR;
         }
 
@@ -1463,8 +1410,7 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         for (p = value[n].data + value[n].len - 1;
              p >= value[n].data;
-             p--)
-        {
+             p--) {
             ch = *p;
 
             if (ch == ' ') {
@@ -1483,8 +1429,8 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
 
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                          "invalid character \"%c\" in \"worker_cpu_affinity\"",
-                          ch);
+                               "invalid character \"%c\" in \"worker_cpu_affinity\"",
+                               ch);
             return NGX_CONF_ERROR;
         }
     }
@@ -1499,16 +1445,14 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-
 ngx_cpuset_t *
-ngx_get_cpu_affinity(ngx_uint_t n)
-{
+ngx_get_cpu_affinity(ngx_uint_t n) {
 #if (NGX_HAVE_CPU_AFFINITY)
-    ngx_uint_t        i, j;
-    ngx_cpuset_t     *mask;
-    ngx_core_conf_t  *ccf;
+    ngx_uint_t i, j;
+    ngx_cpuset_t *mask;
+    ngx_core_conf_t *ccf;
 
-    static ngx_cpuset_t  result;
+    static ngx_cpuset_t result;
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(ngx_cycle->conf_ctx,
                                            ngx_core_module);
@@ -1553,12 +1497,10 @@ ngx_get_cpu_affinity(ngx_uint_t n)
 #endif
 }
 
-
 static char *
-ngx_set_worker_processes(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_str_t        *value;
-    ngx_core_conf_t  *ccf;
+ngx_set_worker_processes(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    ngx_str_t *value;
+    ngx_core_conf_t *ccf;
 
     ccf = (ngx_core_conf_t *) conf;
 
@@ -1582,17 +1524,15 @@ ngx_set_worker_processes(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-
 static char *
-ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
+ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
 #if (NGX_HAVE_DLOPEN)
-    void                *handle;
-    char               **names, **order;
-    ngx_str_t           *value, file;
-    ngx_uint_t           i;
-    ngx_module_t        *module, **modules;
-    ngx_pool_cleanup_t  *cln;
+    void *handle;
+    char **names, **order;
+    ngx_str_t *value, file;
+    ngx_uint_t i;
+    ngx_module_t *module, **modules;
+    ngx_pool_cleanup_t *cln;
 
     if (cf->cycle->modules_used) {
         return "is specified too late";
@@ -1664,13 +1604,11 @@ ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #endif
 }
 
-
 #if (NGX_HAVE_DLOPEN)
 
 static void
-ngx_unload_module(void *data)
-{
-    void  *handle = data;
+ngx_unload_module(void *data) {
+    void *handle = data;
 
     if (ngx_dlclose(handle) != 0) {
         ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
@@ -1681,20 +1619,91 @@ ngx_unload_module(void *data)
 #endif
 
 void test_array() {
-  // 创建内存池
-  ngx_pool_t* ngx_pool = ngx_create_pool(2048, NULL);
+    // 创建内存池
+    ngx_pool_t *ngx_pool = ngx_create_pool(2048, NULL);
 
-  // 创建数组，存储 `int` 类型的元素，初始容量为 5
-  ngx_array_t* ngx_array = ngx_array_create(ngx_pool, sizeof(int), 5);
+    // 创建数组，存储 `int` 类型的元素，初始容量为 2
+    ngx_array_t *ngx_array = ngx_array_create(ngx_pool, sizeof(int), 3);
 
-  int num = 10;
 
-  // 分配数组的一个新元素
-  int* elem = ngx_array_push(ngx_array);
-  if (elem != NULL) {
-    *elem = num;  // 将值赋给数组中的新元素
-  }
+    // 分配数组的一个新元素
+    int *elem = ngx_array_push(ngx_array);
+    if (elem != NULL) {
+        elem[0] = 10;  // 将值赋给数组中的新元素
+    }
 
-  // 清理内存池
-  ngx_destroy_pool(ngx_pool);
+    // 打印数组内容
+    int *data = (int *) ngx_array->elts;
+    for (ngx_uint_t i = 0; i < ngx_array->nelts; i++) {
+        printf("Element %lu: %d\n", (unsigned long) i, data[i]);
+    }
+
+    // 清理内存池
+    ngx_destroy_pool(ngx_pool);
+}
+
+typedef struct {
+  int value;
+} test_element_t;
+
+void test_multi_array() {
+
+    // 初始化内存池
+    ngx_pool_t *pool = ngx_create_pool(1024, NULL); // 创建大小为 1024 字节的内存池
+    if (pool == NULL) {
+        printf("Failed to create memory pool\n");
+        return;
+    }
+
+    // 创建数组
+    ngx_array_t *array = ngx_array_create(pool, 5, sizeof(test_element_t)); // 初始容量为 5
+
+    // 批量添加元素
+    test_element_t *batch = ngx_array_push_n(array, 5);
+
+    for (ngx_uint_t i = 0; i < 5; i++) {
+        batch[i].value = 100 + i;
+    }
+
+    // 打印数组中的所有元素
+    test_element_t *elem = array->elts;
+    for (ngx_uint_t i = 0; i < array->nelts; i++) {
+        printf("Element %d: %d\n", i, elem[i].value);
+    }
+
+    // 销毁数组
+    ngx_array_destroy(array);
+
+    // 销毁内存池
+    ngx_destroy_pool(pool);
+}
+
+void test_list() {
+    // 创建内存池
+    ngx_pool_t *ngx_pool = ngx_create_pool(2048, NULL);
+
+    ngx_list_t* ngx_list = ngx_list_create(ngx_pool,2,sizeof(test_element_t));
+
+    test_element_t* index1 = ngx_list_push(ngx_list);
+    index1->value = 10;
+    test_element_t* index2 = ngx_list_push(ngx_list);
+    index2->value = 20;
+    // 扩容
+    test_element_t* index3 = ngx_list_push(ngx_list);
+    index3->value = 30;
+
+    // 遍历 ngx_list_t
+    ngx_list_part_t *part = &ngx_list->part;
+    test_element_t *data = part->elts;  // 当前部分的元素数组
+    for (unsigned int i = 0; ; i++) {
+        if (i >= part->nelts) { // 当前部分遍历结束，切换到下一部分
+            if (part->next == NULL) {
+                break; // 没有下一部分，退出循环
+            }
+            part = part->next;
+            data = part->elts;
+            i = 0; // 重置索引为 0
+        }
+        printf("Element value: %d\n", data[i].value);
+    }
 }
