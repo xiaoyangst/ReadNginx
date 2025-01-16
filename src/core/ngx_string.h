@@ -14,9 +14,9 @@
 
 
 typedef struct {
-    size_t      len;
-    u_char     *data;
-} ngx_str_t;
+    size_t      len;    // 长度
+    u_char     *data;   // 首地址
+} ngx_str_t;    // 字符串
 
 
 typedef struct {
